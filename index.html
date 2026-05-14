@@ -1,0 +1,921 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Animal Gacha</title>
+
+<style>
+body{font-family:Arial,sans-serif;background:#f5f5f5;margin:0;padding:0;}
+nav{background:#222;padding:15px;display:flex;gap:20px;}
+nav a{color:white;text-decoration:none;font-size:18px;}
+nav a:hover{text-decoration:underline;}
+h1{text-align:center;margin-top:20px;}
+
+.page{display:none;padding:20px;}
+.page.active{display:block;}
+
+.filters{margin:20px 0;display:flex;gap:10px;justify-content:center;flex-wrap:wrap;}
+select{padding:8px;border-radius:6px;border:1px solid #ccc;}
+
+.animal-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:15px;margin-top:20px;}
+.animal-box{background:white;padding:15px;border-radius:14px;text-align:center;box-shadow:0 2px 6px rgba(0,0,0,0.15);border:2px solid transparent;}
+.animal-box .name{font-size:18px;font-weight:bold;}
+.animal-box .rarity{margin-top:4px;font-size:14px;color:#444;}
+.animal-box .chance{margin-top:6px;font-size:13px;color:#666;}
+.animal-box .desc{margin-top:8px;font-size:12px;color:#555;}
+.animal-box .region{margin-top:4px;font-size:11px;color:#777;}
+.unknown{background:#dcdcdc;color:#777;font-style:italic;}
+
+.rarity-common{color:#7d7d7d;}
+.rarity-uncommon{color:#3aa655;}
+.rarity-rare{color:#2b6bd6;}
+.rarity-epic{color:#a335ee;}
+.rarity-legendary{color:#ff8c00;}
+.rarity-mythic{color:#e62e7a;}
+.rarity-ancient{color:#b8860b;}
+.rarity-celestial{
+ background:linear-gradient(90deg,#ff00ff,#00eaff,#ffe600);
+ -webkit-background-clip:text;
+ color:transparent;
+ font-weight:bold;
+}
+
+.animal-box.common{border:2px solid #7d7d7d55;}
+.animal-box.uncommon{border:2px solid #3aa65555;}
+.animal-box.rare{border:2px solid #2b6bd655;}
+.animal-box.epic{border:2px solid #a335ee55;}
+.animal-box.legendary{border:2px solid #ff8c0055;}
+.animal-box.mythic{border:2px solid #e62e7a55;}
+.animal-box.ancient{border:2px solid #b8860b55;}
+.animal-box.celestial{border:2px solid #ffe600aa;box-shadow:0 0 12px #ffe60088;}
+
+.achievements-list{max-width:800px;margin:0 auto;display:flex;flex-direction:column;gap:20px;}
+.achievement-box{background:white;padding:20px;border-radius:14px;box-shadow:0 2px 6px rgba(0,0,0,0.15);border-left:8px solid transparent;}
+.achievement-title{font-size:20px;font-weight:bold;}
+.achievement-desc{margin-top:6px;font-size:14px;color:#555;}
+.achievement-progress{margin-top:10px;font-size:13px;color:#777;}
+
+.achievement-common{border-left-color:#7d7d7d;}
+.achievement-uncommon{border-left-color:#3aa655;}
+.achievement-rare{border-left-color:#2b6bd6;}
+.achievement-epic{border-left-color:#a335ee;}
+.achievement-legendary{border-left-color:#ff8c00;}
+.achievement-mythic{border-left-color:#e62e7a;}
+.achievement-ancient{border-left-color:#b8860b;}
+.achievement-celestial{border-left-color:#ffe600;}
+
+body.dark {
+    background:#111;
+    color:#eee;
+}
+
+/* Top bar becomes white in dark mode */
+body.dark nav {
+    background:#fff;
+}
+
+body.dark nav a {
+    color:#000;
+}
+
+/* Toggle button in dark mode */
+body.dark #darkModeBtn {
+    background:#000;
+    color:#fff;
+    border:1px solid #444;
+}
+
+/* Cards */
+body.dark .animal-box,
+body.dark .achievement-box {
+    background:#1a1a1a;
+    color:#eee;
+    box-shadow:0 2px 6px rgba(255,255,255,0.1);
+}
+
+/* Undiscovered animals */
+body.dark .unknown {
+    background:#333;
+    color:#aaa;
+}
+
+/* Dropdowns */
+body.dark select {
+    background:#222;
+    color:#eee;
+    border:1px solid #555;
+}
+
+/* Roll result text */
+body.dark #result {
+    color:#fff;
+}
+
+/* Smooth theme transitions */
+body, nav, .animal-box, .achievement-box, select {
+    transition: background-color .35s ease, 
+                color .35s ease, 
+                border-color .35s ease, 
+                box-shadow .35s ease;
+}
+/* Locked achievements appear grayed out */
+.achievement-box.locked {
+    opacity: 0.45;
+    filter: grayscale(100%);
+    transition: opacity .35s ease, filter .35s ease;
+}
+
+/* Unlocked achievements fade in */
+.achievement-box.unlocked {
+    opacity: 1;
+    filter: grayscale(0%);
+    transition: opacity .35s ease, filter .35s ease;
+}
+
+/* Dark mode adjustments */
+body.dark .achievement-box.locked {
+    opacity: 0.35;
+    filter: grayscale(100%);
+}
+
+#animalProgressContainer {
+    width: 80%;
+    height: 20px;
+    background: #ddd;
+    border-radius: 12px;
+    margin: 0 auto;
+    overflow: hidden;
+    box-shadow: inset 0 0 5px rgba(0,0,0,0.2);
+    transition: background-color .35s ease;
+}
+
+#animalProgressBar {
+    height: 100%;
+    width: 0%;
+    background: linear-gradient(90deg, #4caf50, #2e8b57);
+    border-radius: 12px;
+    transition: width .45s ease;
+}
+
+body.dark #animalProgressContainer {
+    background: #333;
+}
+
+body.dark #animalProgressBar {
+    background: linear-gradient(90deg, #6aff6a, #3bd13b);
+}
+#qrWrapper {
+    position: fixed;
+    bottom: 12px;
+    right: 12px;
+    width: 70px;
+    height: 70px;
+    padding: 6px;
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.25);
+    opacity: 0.75;
+    transition: opacity .3s ease, background-color .3s ease;
+    z-index: 9999;
+}
+
+#qrWrapper:hover {
+    opacity: 1;
+}
+
+#qrCode {
+    width: 100%;
+    height: 100%;
+    border-radius: 8px;
+}
+
+/* Dark mode support */
+body.dark #qrWrapper {
+    background: #222;
+    box-shadow: 0 2px 8px rgba(255,255,255,0.15);
+}
+
+</style>
+</head>
+
+<body>
+
+<nav>
+ <a href="#" onclick="showPage('roll')">Roll</a>
+ <a href="#" onclick="showPage('index')">Index</a>
+ <a href="#" onclick="showPage('achievements')">Achievements</a>
+ <button onclick="toggleDarkMode()" id="darkModeBtn"
+        style="margin-left:auto;padding:8px 14px;border-radius:8px;cursor:pointer;">
+    Dark Mode
+</button>
+
+
+</nav>
+
+<!-- ROLL PAGE -->
+<div id="roll" class="page active">
+ <h1>Roll an Animal</h1>
+ <div style="text-align:center;margin-top:30px;">
+  <button onclick="rollAnimal()" style="padding:18px 40px;font-size:24px;border-radius:12px;cursor:pointer;">
+   ROLL
+  </button>
+ </div>
+ <h2 id="result" style="text-align:center;margin-top:25px;"></h2>
+</div>
+
+<!-- INDEX PAGE -->
+<div id="index" class="page">
+ <h1>Animal Index</h1>
+<div id="animalProgressContainer">
+    <div id="animalProgressBar"></div>
+</div>
+<div id="animalProgressText" style="text-align:center;margin-top:6px;font-size:14px;"></div>
+
+ <div class="filters">
+  <select id="filterType" onchange="renderIndex()">
+   <option value="all">All Types</option>
+   <option value="mammal">Mammals</option>
+   <option value="bird">Birds</option>
+   <option value="reptile">Reptiles</option>
+   <option value="amphibian">Amphibians</option>
+   <option value="fish">Fish</option>
+   <option value="insect">Insects</option>
+   <option value="other">Other</option>
+  </select>
+
+  <select id="filterRarity" onchange="renderIndex()">
+   <option value="all">All Rarities</option>
+   <option value="common">Common</option>
+   <option value="uncommon">Uncommon</option>
+   <option value="rare">Rare</option>
+   <option value="epic">Epic</option>
+   <option value="legendary">Legendary</option>
+   <option value="mythic">Mythic</option>
+   <option value="ancient">Ancient</option>
+   <option value="celestial">Celestial</option>
+  </select>
+ </div>
+
+ <div id="indexContainer"></div>
+</div>
+
+<!-- ACHIEVEMENTS PAGE -->
+<div id="achievements" class="page">
+ <h1>Achievements</h1>
+ <div id="achievementsContainer" class="achievements-list"></div>
+</div>
+
+<script>
+function toggleDarkMode(){
+    document.body.classList.toggle("dark");
+
+    // Save preference
+    localStorage.setItem("darkMode",
+        document.body.classList.contains("dark") ? "on" : "off"
+    );
+
+    updateDarkModeButton();
+}
+
+function updateDarkModeButton(){
+    const btn = document.getElementById("darkModeBtn");
+    btn.textContent = document.body.classList.contains("dark")
+        ? "Light Mode"
+        : "Dark Mode";
+}
+
+// Load saved preference on startup
+window.addEventListener("load", () => {
+    if(localStorage.getItem("darkMode") === "on"){
+        document.body.classList.add("dark");
+    }
+    updateDarkModeButton();
+});
+
+function toggleDarkMode(){
+    document.body.classList.toggle("dark");
+
+    // Save preference
+    localStorage.setItem("darkMode", 
+        document.body.classList.contains("dark") ? "on" : "off"
+    );
+
+    updateDarkModeButton();
+}
+
+function updateDarkModeButton(){
+    const btn = document.getElementById("darkModeBtn");
+    if(document.body.classList.contains("dark")){
+        btn.textContent = "Light Mode";
+    } else {
+        btn.textContent = "Dark Mode";
+    }
+}
+
+// Load saved preference
+window.onload = () => {
+    if(localStorage.getItem("darkMode") === "on"){
+        document.body.classList.add("dark");
+    }
+    updateDarkModeButton();
+};
+
+/* 215 ANIMALS, EXPANDED */
+const animals = [
+  // ===== COMMON (60) =====
+  { name:"House Cat", rarity:"common", type:"mammal", chance:2.15, discovered:false,
+    description:"A small domesticated feline kept as a companion animal.", region:"Worldwide" },
+  { name:"Golden Retriever", rarity:"common", type:"mammal", chance:2.14, discovered:false,
+    description:"A friendly, intelligent dog breed known for its golden coat.", region:"Europe, North America" },
+  { name:"Domestic Shorthaired Cat", rarity:"common", type:"mammal", chance:2.13, discovered:false,
+    description:"A mixed-breed cat with short fur and varied coat patterns.", region:"Worldwide" },
+  { name:"Tabby Cat", rarity:"common", type:"mammal", chance:2.12, discovered:false,
+    description:"A domestic cat with characteristic striped or spotted coat.", region:"Worldwide" },
+  { name:"Labrador Retriever", rarity:"common", type:"mammal", chance:2.11, discovered:false,
+    description:"A popular dog breed known for its gentle nature and trainability.", region:"Worldwide" },
+  { name:"Beagle", rarity:"common", type:"mammal", chance:2.10, discovered:false,
+    description:"A small hound breed with a keen sense of smell.", region:"Europe, North America" },
+  { name:"Pigeon", rarity:"common", type:"bird", chance:2.09, discovered:false,
+    description:"A medium-sized bird often found in cities and towns.", region:"Worldwide" },
+  { name:"Sparrow", rarity:"common", type:"bird", chance:2.08, discovered:false,
+    description:"A small, social songbird common in urban and rural areas.", region:"Worldwide" },
+  { name:"Mallard Duck", rarity:"common", type:"bird", chance:2.07, discovered:false,
+    description:"A dabbling duck with a distinctive green-headed male.", region:"Northern Hemisphere" },
+  { name:"Seagull", rarity:"common", type:"bird", chance:2.06, discovered:false,
+    description:"A coastal bird often seen scavenging near shorelines.", region:"Coastal regions worldwide" },
+  { name:"Crow", rarity:"common", type:"bird", chance:2.05, discovered:false,
+    description:"An intelligent black bird known for problem-solving skills.", region:"Worldwide" },
+  { name:"Chicken", rarity:"common", type:"bird", chance:2.04, discovered:false,
+    description:"A domesticated bird raised for meat and eggs.", region:"Worldwide" },
+  { name:"Turkey", rarity:"common", type:"bird", chance:2.03, discovered:false,
+    description:"A large bird domesticated for meat, with wild populations in forests.", region:"North America" },
+  { name:"Mouse", rarity:"common", type:"mammal", chance:2.02, discovered:false,
+    description:"A small rodent that thrives near human settlements.", region:"Worldwide" },
+  { name:"Rat", rarity:"common", type:"mammal", chance:2.01, discovered:false,
+    description:"A medium-sized rodent known for adaptability and intelligence.", region:"Worldwide" },
+  { name:"Rabbit", rarity:"common", type:"mammal", chance:2.00, discovered:false,
+    description:"A small herbivorous mammal with long ears and strong hind legs.", region:"Worldwide" },
+  { name:"Guinea Pig", rarity:"common", type:"mammal", chance:1.99, discovered:false,
+    description:"A small rodent often kept as a household pet.", region:"South America (origin), Worldwide (pets)" },
+  { name:"Hamster", rarity:"common", type:"mammal", chance:1.98, discovered:false,
+    description:"A small burrowing rodent commonly kept in cages.", region:"Eurasia (wild), Worldwide (pets)" },
+  { name:"Cow", rarity:"common", type:"mammal", chance:1.97, discovered:false,
+    description:"A large domesticated bovine raised for milk and meat.", region:"Worldwide" },
+  { name:"Sheep", rarity:"common", type:"mammal", chance:1.96, discovered:false,
+    description:"A wool-producing herbivore often grazed in flocks.", region:"Worldwide" },
+  { name:"Goat", rarity:"common", type:"mammal", chance:1.95, discovered:false,
+    description:"A hardy domesticated animal used for milk, meat, and fiber.", region:"Worldwide" },
+  { name:"Pig", rarity:"common", type:"mammal", chance:1.94, discovered:false,
+    description:"A domesticated omnivore raised primarily for meat.", region:"Worldwide" },
+  { name:"Donkey", rarity:"common", type:"mammal", chance:1.93, discovered:false,
+    description:"A sturdy equid used historically as a pack animal.", region:"Africa, Asia, Worldwide (domestic)" },
+  { name:"Horse", rarity:"common", type:"mammal", chance:1.92, discovered:false,
+    description:"A large hoofed mammal used for riding and work.", region:"Worldwide" },
+  { name:"Goldfish", rarity:"common", type:"fish", chance:1.91, discovered:false,
+    description:"A small ornamental carp kept in aquariums and ponds.", region:"East Asia (origin), Worldwide (pets)" },
+  { name:"Carp", rarity:"common", type:"fish", chance:1.90, discovered:false,
+    description:"A freshwater fish often found in lakes and ponds.", region:"Europe, Asia" },
+  { name:"Tuna", rarity:"common", type:"fish", chance:1.89, discovered:false,
+    description:"A fast, migratory ocean fish important in fisheries.", region:"Global oceans" },
+  { name:"Crab", rarity:"common", type:"other", chance:1.88, discovered:false,
+    description:"A crustacean with a broad shell and pincers.", region:"Coastal waters worldwide" },
+  { name:"Shrimp", rarity:"common", type:"other", chance:1.87, discovered:false,
+    description:"A small swimming crustacean found in marine and freshwater habitats.", region:"Global waters" },
+  { name:"Snail", rarity:"common", type:"other", chance:1.86, discovered:false,
+    description:"A slow-moving mollusk with a coiled shell.", region:"Worldwide" },
+  { name:"Slug", rarity:"common", type:"other", chance:1.85, discovered:false,
+    description:"A shell-less mollusk that thrives in moist environments.", region:"Worldwide" },
+  { name:"Earthworm", rarity:"common", type:"other", chance:1.84, discovered:false,
+    description:"A soil-dwelling annelid vital for soil aeration.", region:"Worldwide" },
+  { name:"Beetle", rarity:"common", type:"insect", chance:1.83, discovered:false,
+    description:"A diverse group of insects with hardened forewings.", region:"Worldwide" },
+  { name:"Ladybug", rarity:"common", type:"insect", chance:1.82, discovered:false,
+    description:"A small beetle often red with black spots, beneficial to gardens.", region:"Worldwide" },
+  { name:"Ant", rarity:"common", type:"insect", chance:1.81, discovered:false,
+    description:"A social insect living in colonies with complex societies.", region:"Worldwide" },
+  { name:"Bee", rarity:"common", type:"insect", chance:1.80, discovered:false,
+    description:"A pollinating insect essential for many flowering plants.", region:"Worldwide" },
+  { name:"Wasp", rarity:"common", type:"insect", chance:1.79, discovered:false,
+    description:"A stinging insect, some species are predators or parasitoids.", region:"Worldwide" },
+  { name:"Moth", rarity:"common", type:"insect", chance:1.78, discovered:false,
+    description:"A nocturnal flying insect related to butterflies.", region:"Worldwide" },
+  { name:"Butterfly", rarity:"common", type:"insect", chance:1.77, discovered:false,
+    description:"A colorful flying insect with scaled wings.", region:"Worldwide" },
+  { name:"Gecko", rarity:"common", type:"reptile", chance:1.76, discovered:false,
+    description:"A small lizard often found on walls and ceilings.", region:"Tropical and subtropical regions" },
+  { name:"Garden Lizard", rarity:"common", type:"reptile", chance:1.75, discovered:false,
+    description:"A small lizard commonly seen in gardens and shrubs.", region:"Asia, Africa" },
+  { name:"Turtle", rarity:"common", type:"reptile", chance:1.74, discovered:false,
+    description:"A reptile with a bony shell for protection.", region:"Worldwide (freshwater and marine)" },
+  { name:"Frog", rarity:"common", type:"amphibian", chance:1.73, discovered:false,
+    description:"An amphibian with long hind legs for jumping.", region:"Worldwide except polar regions" },
+  { name:"Toad", rarity:"common", type:"amphibian", chance:1.72, discovered:false,
+    description:"A warty-skinned amphibian often found in gardens and forests.", region:"Worldwide" },
+  { name:"Squirrel", rarity:"common", type:"mammal", chance:1.71, discovered:false,
+    description:"A tree-dwelling rodent with a bushy tail.", region:"Worldwide" },
+  { name:"Hedgehog", rarity:"common", type:"mammal", chance:1.70, discovered:false,
+    description:"A small mammal covered in protective spines.", region:"Europe, Asia, Africa" },
+  { name:"Raccoon", rarity:"common", type:"mammal", chance:1.69, discovered:false,
+    description:"A nocturnal mammal known for its masked face and dexterous paws.", region:"North America" },
+  { name:"Opossum", rarity:"common", type:"mammal", chance:1.68, discovered:false,
+    description:"A marsupial that often feigns death when threatened.", region:"Americas" },
+  { name:"Mole", rarity:"common", type:"mammal", chance:1.67, discovered:false,
+    description:"A burrowing insectivorous mammal with powerful forelimbs.", region:"Europe, Asia, North America" },
+  { name:"Ferret", rarity:"common", type:"mammal", chance:1.66, discovered:false,
+    description:"A domesticated mustelid used for hunting and as a pet.", region:"Europe (origin), Worldwide (pets)" },
+  { name:"Parakeet", rarity:"common", type:"bird", chance:1.65, discovered:false,
+    description:"A small, colorful parrot often kept as a pet.", region:"Australia (origin), Worldwide (pets)" },
+  { name:"Canary", rarity:"common", type:"bird", chance:1.64, discovered:false,
+    description:"A small songbird prized for its melodious call.", region:"Macaronesian Islands (origin), Worldwide (pets)" },
+  { name:"Robin", rarity:"common", type:"bird", chance:1.63, discovered:false,
+    description:"A small bird with a distinctive red or orange breast.", region:"Europe, North America" },
+  { name:"Blue Jay", rarity:"common", type:"bird", chance:1.62, discovered:false,
+    description:"A blue-feathered songbird known for its loud calls.", region:"North America" },
+  { name:"Starling", rarity:"common", type:"bird", chance:1.61, discovered:false,
+    description:"A social bird that forms large murmurations.", region:"Europe, Asia, introduced elsewhere" },
+  { name:"Magpie", rarity:"common", type:"bird", chance:1.60, discovered:false,
+    description:"A black-and-white bird noted for intelligence and curiosity.", region:"Europe, Asia, Australia" },
+  { name:"Hermit Crab", rarity:"common", type:"other", chance:1.59, discovered:false,
+    description:"A crustacean that uses empty shells for protection.", region:"Coastal regions worldwide" },
+  { name:"Field Mouse", rarity:"common", type:"mammal", chance:1.58, discovered:false,
+    description:"A small rodent living in fields and grasslands.", region:"Europe, Asia, North America" },
+  { name:"Barn Owl", rarity:"common", type:"bird", chance:1.57, discovered:false,
+    description:"A nocturnal bird with a heart-shaped facial disc.", region:"Worldwide except polar regions" },
+
+  // ===== UNCOMMON (45) =====
+  { name:"Red Fox", rarity:"uncommon", type:"mammal", chance:1.56, discovered:false,
+    description:"A cunning carnivore with a bushy tail and reddish coat.", region:"Northern Hemisphere" },
+  { name:"Grey Wolf", rarity:"uncommon", type:"mammal", chance:1.55, discovered:false,
+    description:"A social predator living in packs.", region:"North America, Europe, Asia" },
+  { name:"Coyote", rarity:"uncommon", type:"mammal", chance:1.54, discovered:false,
+    description:"A versatile canid adapted to many habitats.", region:"North America" },
+  { name:"Badger", rarity:"uncommon", type:"mammal", chance:1.53, discovered:false,
+    description:"A burrowing mammal with strong claws and striped face.", region:"Europe, Asia, North America" },
+  { name:"Otter", rarity:"uncommon", type:"mammal", chance:1.52, discovered:false,
+    description:"A semi-aquatic mammal known for playful behavior.", region:"Rivers and coasts worldwide" },
+  { name:"Beaver", rarity:"uncommon", type:"mammal", chance:1.51, discovered:false,
+    description:"A rodent that builds dams and lodges in rivers.", region:"North America, Europe" },
+  { name:"Koala", rarity:"uncommon", type:"mammal", chance:1.50, discovered:false,
+    description:"A tree-dwelling marsupial that feeds on eucalyptus leaves.", region:"Eastern Australia" },
+  { name:"Kangaroo", rarity:"uncommon", type:"mammal", chance:1.49, discovered:false,
+    description:"A large marsupial that moves by hopping.", region:"Australia" },
+  { name:"Wallaby", rarity:"uncommon", type:"mammal", chance:1.48, discovered:false,
+    description:"A smaller relative of the kangaroo.", region:"Australia" },
+  { name:"Wombat", rarity:"uncommon", type:"mammal", chance:1.47, discovered:false,
+    description:"A burrowing marsupial with a stout body.", region:"Australia" },
+  { name:"Platypus", rarity:"uncommon", type:"mammal", chance:1.46, discovered:false,
+    description:"An egg-laying mammal with a duck-like bill.", region:"Eastern Australia" },
+  { name:"Echidna", rarity:"uncommon", type:"mammal", chance:1.45, discovered:false,
+    description:"A spiny anteater that feeds on ants and termites.", region:"Australia, New Guinea" },
+  { name:"Red Squirrel", rarity:"uncommon", type:"mammal", chance:1.44, discovered:false,
+    description:"A tree squirrel with reddish fur.", region:"Europe, Asia" },
+  { name:"Chipmunk", rarity:"uncommon", type:"mammal", chance:1.43, discovered:false,
+    description:"A small striped rodent that stores food in cheek pouches.", region:"North America, Asia" },
+  { name:"Hare", rarity:"uncommon", type:"mammal", chance:1.42, discovered:false,
+    description:"A fast-running lagomorph with long ears.", region:"Europe, Asia, Africa, Americas" },
+  { name:"Boar", rarity:"uncommon", type:"mammal", chance:1.41, discovered:false,
+    description:"A wild pig with tusks and coarse hair.", region:"Europe, Asia, North Africa" },
+  { name:"Reindeer", rarity:"uncommon", type:"mammal", chance:1.40, discovered:false,
+    description:"A cold-adapted deer species, some populations domesticated.", region:"Arctic and subarctic regions" },
+  { name:"Moose", rarity:"uncommon", type:"mammal", chance:1.39, discovered:false,
+    description:"The largest deer species with broad antlers.", region:"Northern Europe, Asia, North America" },
+  { name:"Deer", rarity:"uncommon", type:"mammal", chance:1.38, discovered:false,
+    description:"A hoofed herbivore with antlered males in many species.", region:"Worldwide" },
+  { name:"Gazelle", rarity:"uncommon", type:"mammal", chance:1.37, discovered:false,
+    description:"A swift antelope adapted to open plains.", region:"Africa, Asia" },
+  { name:"Antelope", rarity:"uncommon", type:"mammal", chance:1.36, discovered:false,
+    description:"A diverse group of herbivorous ungulates.", region:"Africa, Eurasia" },
+  { name:"Flamingo", rarity:"uncommon", type:"bird", chance:1.35, discovered:false,
+    description:"A wading bird with pink plumage and long legs.", region:"Africa, Americas, Europe, Asia" },
+  { name:"Pelican", rarity:"uncommon", type:"bird", chance:1.34, discovered:false,
+    description:"A large waterbird with a distinctive throat pouch.", region:"Coastal and inland waters worldwide" },
+  { name:"Heron", rarity:"uncommon", type:"bird", chance:1.33, discovered:false,
+    description:"A long-legged wading bird that hunts fish.", region:"Wetlands worldwide" },
+  { name:"Kingfisher", rarity:"uncommon", type:"bird", chance:1.32, discovered:false,
+    description:"A small bird with bright plumage that dives for fish.", region:"Rivers and coasts worldwide" },
+  { name:"Woodpecker", rarity:"uncommon", type:"bird", chance:1.31, discovered:false,
+    description:"A bird that drills into wood to find insects.", region:"Forests worldwide" },
+  { name:"Swan", rarity:"uncommon", type:"bird", chance:1.30, discovered:false,
+    description:"A large waterbird with a long neck and graceful posture.", region:"Temperate regions worldwide" },
+  { name:"Goose", rarity:"uncommon", type:"bird", chance:1.29, discovered:false,
+    description:"A waterfowl species that migrates in flocks.", region:"Northern Hemisphere" },
+  { name:"Peacock", rarity:"uncommon", type:"bird", chance:1.28, discovered:false,
+    description:"A pheasant with a spectacular fan of tail feathers.", region:"South Asia" },
+  { name:"Ibis", rarity:"uncommon", type:"bird", chance:1.27, discovered:false,
+    description:"A wading bird with a long curved bill.", region:"Tropical and subtropical regions" },
+  { name:"Cormorant", rarity:"uncommon", type:"bird", chance:1.26, discovered:false,
+    description:"A diving bird that hunts fish underwater.", region:"Coasts and lakes worldwide" },
+  { name:"Iguana", rarity:"uncommon", type:"reptile", chance:1.25, discovered:false,
+    description:"A large arboreal lizard often found in tropical forests.", region:"Central and South America" },
+  { name:"Chameleon", rarity:"uncommon", type:"reptile", chance:1.24, discovered:false,
+    description:"A lizard known for color change and independently moving eyes.", region:"Africa, Madagascar, Asia" },
+  { name:"Corn Snake", rarity:"uncommon", type:"reptile", chance:1.23, discovered:false,
+    description:"A nonvenomous snake often kept as a pet.", region:"Southeastern United States" },
+  { name:"Garter Snake", rarity:"uncommon", type:"reptile", chance:1.22, discovered:false,
+    description:"A small, harmless snake common in gardens and fields.", region:"North America" },
+  { name:"Box Turtle", rarity:"uncommon", type:"reptile", chance:1.21, discovered:false,
+    description:"A terrestrial turtle with a domed shell that closes tightly.", region:"North America" },
+  { name:"Newt", rarity:"uncommon", type:"amphibian", chance:1.20, discovered:false,
+    description:"A small semi-aquatic salamander.", region:"Europe, Asia, North America" },
+  { name:"Salamander", rarity:"uncommon", type:"amphibian", chance:1.19, discovered:false,
+    description:"An amphibian with a lizard-like body and moist skin.", region:"Northern Hemisphere" },
+  { name:"Koi", rarity:"uncommon", type:"fish", chance:1.18, discovered:false,
+    description:"A colorful ornamental carp kept in ponds.", region:"East Asia (origin), Worldwide (ornamental)" },
+  { name:"Catfish", rarity:"uncommon", type:"fish", chance:1.17, discovered:false,
+    description:"A bottom-dwelling fish with whisker-like barbels.", region:"Freshwaters worldwide" },
+  { name:"Trout", rarity:"uncommon", type:"fish", chance:1.16, discovered:false,
+    description:"A freshwater fish prized by anglers.", region:"Cool streams and lakes in Northern Hemisphere" },
+  { name:"Octopus", rarity:"uncommon", type:"other", chance:1.15, discovered:false,
+    description:"An intelligent cephalopod with eight arms.", region:"Oceans worldwide" },
+  { name:"Squid", rarity:"uncommon", type:"other", chance:1.14, discovered:false,
+    description:"A fast-swimming cephalopod with tentacles.", region:"Oceans worldwide" },
+  { name:"Starfish", rarity:"uncommon", type:"other", chance:1.13, discovered:false,
+    description:"A star-shaped echinoderm found on the seafloor.", region:"Oceans worldwide" },
+  { name:"Sea Urchin", rarity:"uncommon", type:"other", chance:1.12, discovered:false,
+    description:"A spiny echinoderm that grazes on algae.", region:"Oceans worldwide" },
+  { name:"Dragonfly", rarity:"uncommon", type:"insect", chance:1.11, discovered:false,
+    description:"A fast-flying insect with large eyes and two pairs of wings.", region:"Near freshwater worldwide" },
+
+  // ===== RARE (35) =====
+  { name:"Lynx", rarity:"rare", type:"mammal", chance:1.10, discovered:false,
+    description:"A medium-sized wild cat with tufted ears.", region:"Europe, Asia, North America" },
+  { name:"Bobcat", rarity:"rare", type:"mammal", chance:1.09, discovered:false,
+    description:"A North American wild cat with spotted fur.", region:"North America" },
+  { name:"Cheetah", rarity:"rare", type:"mammal", chance:1.08, discovered:false,
+    description:"The fastest land animal, built for sprinting.", region:"Africa, Iran" },
+  { name:"Leopard", rarity:"rare", type:"mammal", chance:1.07, discovered:false,
+    description:"A spotted big cat adept at climbing trees.", region:"Africa, Asia" },
+  { name:"Jaguar", rarity:"rare", type:"mammal", chance:1.06, discovered:false,
+    description:"A powerful big cat with a strong bite.", region:"Central and South America" },
+  { name:"Hyena", rarity:"rare", type:"mammal", chance:1.05, discovered:false,
+    description:"A scavenging carnivore with a distinctive laugh-like call.", region:"Africa, parts of Asia" },
+  { name:"Meerkat", rarity:"rare", type:"mammal", chance:1.04, discovered:false,
+    description:"A small mongoose that stands upright to scan for danger.", region:"Southern Africa" },
+  { name:"Prairie Dog", rarity:"rare", type:"mammal", chance:1.03, discovered:false,
+    description:"A burrowing rodent that lives in large colonies.", region:"North American grasslands" },
+  { name:"Armadillo", rarity:"rare", type:"mammal", chance:1.02, discovered:false,
+    description:"A mammal with a protective armored shell.", region:"Americas" },
+  { name:"Sloth", rarity:"rare", type:"mammal", chance:1.01, discovered:false,
+    description:"A slow-moving arboreal mammal that hangs from trees.", region:"Central and South American rainforests" },
+  { name:"Tapir", rarity:"rare", type:"mammal", chance:1.00, discovered:false,
+    description:"A large herbivore with a short, flexible snout.", region:"Central and South America, Southeast Asia" },
+  { name:"Okapi", rarity:"rare", type:"mammal", chance:0.99, discovered:false,
+    description:"A forest-dwelling relative of the giraffe with striped legs.", region:"Democratic Republic of Congo" },
+  { name:"Mandrill", rarity:"rare", type:"mammal", chance:0.98, discovered:false,
+    description:"A colorful primate with a bright blue and red face.", region:"Central African rainforests" },
+  { name:"Baboon", rarity:"rare", type:"mammal", chance:0.97, discovered:false,
+    description:"A large ground-dwelling monkey with a dog-like muzzle.", region:"Africa, Arabian Peninsula" },
+  { name:"Orangutan", rarity:"rare", type:"mammal", chance:0.96, discovered:false,
+    description:"A great ape that spends most of its life in trees.", region:"Borneo and Sumatra" },
+  { name:"Gibbon", rarity:"rare", type:"mammal", chance:0.95, discovered:false,
+    description:"A small ape known for brachiation and loud calls.", region:"Southeast Asia" },
+  { name:"Macaw", rarity:"rare", type:"bird", chance:0.94, discovered:false,
+    description:"A large, colorful parrot with a strong beak.", region:"Central and South American rainforests" },
+  { name:"Toucan", rarity:"rare", type:"bird", chance:0.93, discovered:false,
+    description:"A bird with a large, colorful bill.", region:"Central and South America" },
+  { name:"Hornbill", rarity:"rare", type:"bird", chance:0.92, discovered:false,
+    description:"A bird with a prominent bill and casque.", region:"Africa, Asia" },
+  { name:"Secretary Bird", rarity:"rare", type:"bird", chance:0.91, discovered:false,
+    description:"A tall bird of prey that hunts on foot.", region:"Sub-Saharan Africa" },
+  { name:"Vulture", rarity:"rare", type:"bird", chance:0.90, discovered:false,
+    description:"A scavenging bird that feeds on carrion.", region:"Worldwide except Australia and Antarctica" },
+  { name:"Osprey", rarity:"rare", type:"bird", chance:0.89, discovered:false,
+    description:"A fish-eating raptor that dives into water.", region:"Near coasts and lakes worldwide" },
+  { name:"Monitor Lizard", rarity:"rare", type:"reptile", chance:0.88, discovered:false,
+    description:"A large, powerful lizard with a long tail.", region:"Africa, Asia, Australia" },
+  { name:"Gila Monster", rarity:"rare", type:"reptile", chance:0.87, discovered:false,
+    description:"A venomous lizard with bead-like scales.", region:"Southwestern United States, Mexico" },
+  { name:"Rattlesnake", rarity:"rare", type:"reptile", chance:0.86, discovered:false,
+    description:"A venomous snake with a warning rattle on its tail.", region:"Americas" },
+  { name:"Python", rarity:"rare", type:"reptile", chance:0.85, discovered:false,
+    description:"A large constrictor snake that kills by squeezing.", region:"Africa, Asia, Australia" },
+  { name:"Cobra", rarity:"rare", type:"reptile", chance:0.84, discovered:false,
+    description:"A venomous snake that can flare a hood.", region:"Africa, Asia" },
+  { name:"Poison Dart Frog", rarity:"rare", type:"amphibian", chance:0.83, discovered:false,
+    description:"A brightly colored frog with toxic skin.", region:"Central and South American rainforests" },
+  { name:"Axolotl", rarity:"rare", type:"amphibian", chance:0.82, discovered:false,
+    description:"A neotenic salamander that retains larval features.", region:"Lakes near Mexico City" },
+  { name:"Piranha", rarity:"rare", type:"fish", chance:0.81, discovered:false,
+    description:"A freshwater fish with sharp teeth and a fearsome reputation.", region:"South American rivers" },
+  { name:"Manta Ray", rarity:"rare", type:"fish", chance:0.80, discovered:false,
+    description:"A large ray that glides gracefully through open water.", region:"Tropical and subtropical oceans" },
+  { name:"Electric Eel", rarity:"rare", type:"fish", chance:0.79, discovered:false,
+    description:"A fish capable of generating strong electric shocks.", region:"Amazon and Orinoco basins" },
+  { name:"Giant Clam", rarity:"rare", type:"other", chance:0.78, discovered:false,
+    description:"A massive bivalve that hosts symbiotic algae.", region:"Indo-Pacific coral reefs" },
+  { name:"Horseshoe Crab", rarity:"rare", type:"other", chance:0.77, discovered:false,
+    description:"An ancient arthropod with blue blood used in medicine.", region:"Coastal waters of Asia and North America" },
+  { name:"Praying Mantis", rarity:"rare", type:"insect", chance:0.76, discovered:false,
+    description:"A predatory insect with folded forelegs resembling prayer.", region:"Temperate and tropical regions worldwide" },
+
+  // ===== EPIC (25) =====
+  { name:"Snowy Owl", rarity:"epic", type:"bird", chance:0.75, discovered:false,
+    description:"A white owl adapted to Arctic tundra.", region:"Arctic regions" },
+  { name:"Bald Eagle", rarity:"epic", type:"bird", chance:0.74, discovered:false,
+    description:"A large raptor and national symbol of the United States.", region:"North America" },
+  { name:"Golden Eagle", rarity:"epic", type:"bird", chance:0.73, discovered:false,
+    description:"A powerful bird of prey with dark brown plumage.", region:"Northern Hemisphere" },
+  { name:"Peregrine Falcon", rarity:"epic", type:"bird", chance:0.72, discovered:false,
+    description:"The fastest bird, known for high-speed dives.", region:"Worldwide" },
+  { name:"Harpy Eagle", rarity:"epic", type:"bird", chance:0.71, discovered:false,
+    description:"A massive forest eagle with powerful talons.", region:"Central and South American rainforests" },
+  { name:"Red Panda", rarity:"epic", type:"mammal", chance:0.70, discovered:false,
+    description:"A small arboreal mammal with reddish fur and a ringed tail.", region:"Himalayas and southwestern China" },
+  { name:"Snow Leopard", rarity:"epic", type:"mammal", chance:0.69, discovered:false,
+    description:"A big cat adapted to high mountain ranges.", region:"Central and South Asia" },
+  { name:"Clouded Leopard", rarity:"epic", type:"mammal", chance:0.68, discovered:false,
+    description:"A medium-sized cat with cloud-like spots.", region:"Southeast Asia" },
+  { name:"African Wild Dog", rarity:"epic", type:"mammal", chance:0.67, discovered:false,
+    description:"A social carnivore with mottled coat and large ears.", region:"Sub-Saharan Africa" },
+  { name:"Maned Wolf", rarity:"epic", type:"mammal", chance:0.66, discovered:false,
+    description:"A long-legged canid with a reddish coat.", region:"South American grasslands" },
+  { name:"Wolverine", rarity:"epic", type:"mammal", chance:0.65, discovered:false,
+    description:"A stocky mustelid known for strength and tenacity.", region:"Northern forests of Eurasia and North America" },
+  { name:"Tasmanian Devil", rarity:"epic", type:"mammal", chance:0.64, discovered:false,
+    description:"A carnivorous marsupial with a powerful bite.", region:"Tasmania, Australia" },
+  { name:"Aye-aye", rarity:"epic", type:"mammal", chance:0.63, discovered:false,
+    description:"A nocturnal lemur with an elongated middle finger.", region:"Madagascar" },
+  { name:"Fossa", rarity:"epic", type:"mammal", chance:0.62, discovered:false,
+    description:"A cat-like carnivore and top predator of Madagascar.", region:"Madagascar" },
+  { name:"Komodo Dragon", rarity:"epic", type:"reptile", chance:0.61, discovered:false,
+    description:"The largest living lizard, a powerful predator.", region:"Indonesian islands" },
+  { name:"Green Anaconda", rarity:"epic", type:"reptile", chance:0.60, discovered:false,
+    description:"One of the heaviest snakes, semi-aquatic.", region:"South American wetlands" },
+  { name:"Saltwater Crocodile", rarity:"epic", type:"reptile", chance:0.59, discovered:false,
+    description:"The largest living reptile, a formidable predator.", region:"Southeast Asia, Australia" },
+  { name:"Gharial", rarity:"epic", type:"reptile", chance:0.58, discovered:false,
+    description:"A crocodilian with a long, narrow snout.", region:"Indian subcontinent rivers" },
+  { name:"Frilled Lizard", rarity:"epic", type:"reptile", chance:0.57, discovered:false,
+    description:"A lizard that displays a large neck frill when threatened.", region:"Northern Australia, New Guinea" },
+  { name:"Blue-ringed Octopus", rarity:"epic", type:"other", chance:0.56, discovered:false,
+    description:"A small but highly venomous octopus with blue rings.", region:"Pacific and Indian Oceans" },
+  { name:"Giant Squid", rarity:"epic", type:"other", chance:0.55, discovered:false,
+    description:"A deep-sea cephalopod of enormous size.", region:"Deep oceans worldwide" },
+  { name:"Leafcutter Ant", rarity:"epic", type:"insect", chance:0.54, discovered:false,
+    description:"A social insect that farms fungus on collected leaves.", region:"Central and South America" },
+  { name:"Atlas Moth", rarity:"epic", type:"insect", chance:0.53, discovered:false,
+    description:"One of the largest moths by wingspan.", region:"Southeast Asia" },
+  { name:"Goliath Beetle", rarity:"epic", type:"insect", chance:0.52, discovered:false,
+    description:"A massive beetle found in African forests.", region:"Tropical Africa" },
+  { name:"Hercules Beetle", rarity:"epic", type:"insect", chance:0.51, discovered:false,
+    description:"A rhinoceros beetle with an enormous horn.", region:"Central and South America" },
+
+  // ===== LEGENDARY (20) =====
+  { name:"Lion", rarity:"legendary", type:"mammal", chance:0.50, discovered:false,
+    description:"A social big cat known as the king of the savanna.", region:"Sub-Saharan Africa, India" },
+  { name:"Tiger", rarity:"legendary", type:"mammal", chance:0.49, discovered:false,
+    description:"A striped big cat and apex predator.", region:"Asia" },
+  { name:"White Tiger", rarity:"legendary", type:"mammal", chance:0.48, discovered:false,
+    description:"A rare color morph of the Bengal tiger.", region:"Captive populations, historically India" },
+  { name:"Black Panther", rarity:"legendary", type:"mammal", chance:0.47, discovered:false,
+    description:"A melanistic leopard or jaguar with dark coat.", region:"Africa, Asia, Americas" },
+  { name:"Grizzly Bear", rarity:"legendary", type:"mammal", chance:0.46, discovered:false,
+    description:"A large brown bear subspecies with a hump on its shoulders.", region:"North America" },
+  { name:"Polar Bear", rarity:"legendary", type:"mammal", chance:0.45, discovered:false,
+    description:"A marine bear adapted to life on Arctic sea ice.", region:"Arctic Circle" },
+  { name:"Giant Panda", rarity:"legendary", type:"mammal", chance:0.44, discovered:false,
+    description:"A bear that feeds mainly on bamboo.", region:"Central China" },
+  { name:"Gorilla", rarity:"legendary", type:"mammal", chance:0.43, discovered:false,
+    description:"The largest living primate, mostly herbivorous.", region:"Central African forests" },
+  { name:"Chimpanzee", rarity:"legendary", type:"mammal", chance:0.42, discovered:false,
+    description:"A highly intelligent great ape closely related to humans.", region:"Central and West Africa" },
+  { name:"African Elephant", rarity:"legendary", type:"mammal", chance:0.41, discovered:false,
+    description:"The largest land animal with large ears and tusks.", region:"Sub-Saharan Africa" },
+  { name:"Asian Elephant", rarity:"legendary", type:"mammal", chance:0.40, discovered:false,
+    description:"A slightly smaller elephant with smaller ears.", region:"South and Southeast Asia" },
+  { name:"Hippopotamus", rarity:"legendary", type:"mammal", chance:0.39, discovered:false,
+    description:"A large semi-aquatic mammal with massive jaws.", region:"Sub-Saharan Africa" },
+  { name:"Rhinoceros", rarity:"legendary", type:"mammal", chance:0.38, discovered:false,
+    description:"A large herbivore with one or two horns on its snout.", region:"Africa, Asia" },
+  { name:"Giraffe", rarity:"legendary", type:"mammal", chance:0.37, discovered:false,
+    description:"The tallest land animal with a long neck.", region:"Sub-Saharan Africa" },
+  { name:"Blue Whale", rarity:"legendary", type:"fish", chance:0.36, discovered:false,
+    description:"The largest animal ever known to have lived.", region:"Global oceans" },
+  { name:"Orca", rarity:"legendary", type:"fish", chance:0.35, discovered:false,
+    description:"A highly social toothed whale also called killer whale.", region:"Global oceans" },
+  { name:"Great White Shark", rarity:"legendary", type:"fish", chance:0.34, discovered:false,
+    description:"A large predatory shark with a fearsome reputation.", region:"Coastal waters worldwide" },
+  { name:"Hammerhead Shark", rarity:"legendary", type:"fish", chance:0.33, discovered:false,
+    description:"A shark with a distinctive hammer-shaped head.", region:"Warm coastal waters worldwide" },
+  { name:"Narwhal", rarity:"legendary", type:"fish", chance:0.32, discovered:false,
+    description:"A whale with a long spiral tusk.", region:"Arctic waters" },
+  { name:"Beluga Whale", rarity:"legendary", type:"fish", chance:0.31, discovered:false,
+    description:"A white whale known for vocalizations.", region:"Arctic and subarctic waters" },
+
+  // ===== MYTHIC (15) =====
+  { name:"Snow Monkey", rarity:"mythic", type:"mammal", chance:0.30, discovered:false,
+    description:"A Japanese macaque that bathes in hot springs.", region:"Japan" },
+  { name:"Saiga Antelope", rarity:"mythic", type:"mammal", chance:0.29, discovered:false,
+    description:"An antelope with a distinctive bulbous nose.", region:"Central Asian steppes" },
+  { name:"Markhor", rarity:"mythic", type:"mammal", chance:0.28, discovered:false,
+    description:"A wild goat with long, spiraled horns.", region:"Mountainous regions of Central Asia" },
+  { name:"Bongo", rarity:"mythic", type:"mammal", chance:0.27, discovered:false,
+    description:"A large forest antelope with striking stripes.", region:"Central African rainforests" },
+  { name:"Addax", rarity:"mythic", type:"mammal", chance:0.26, discovered:false,
+    description:"A desert antelope adapted to extreme aridity.", region:"Sahara Desert" },
+  { name:"Snowshoe Hare", rarity:"mythic", type:"mammal", chance:0.25, discovered:false,
+    description:"A hare that changes coat color with the seasons.", region:"North American boreal forests" },
+  { name:"Arctic Fox", rarity:"mythic", type:"mammal", chance:0.24, discovered:false,
+    description:"A fox with thick fur adapted to polar climates.", region:"Arctic tundra" },
+  { name:"Caracal", rarity:"mythic", type:"mammal", chance:0.23, discovered:false,
+    description:"A medium-sized cat with tufted ears.", region:"Africa, Middle East, Central Asia" },
+  { name:"Serval", rarity:"mythic", type:"mammal", chance:0.22, discovered:false,
+    description:"A slender cat with long legs and large ears.", region:"Sub-Saharan Africa" },
+  { name:"Secretary Bird (Black Morph)", rarity:"mythic", type:"bird", chance:0.21, discovered:false,
+    description:"A rare dark-colored form of the secretary bird.", region:"Sub-Saharan Africa" },
+  { name:"Shoebill", rarity:"mythic", type:"bird", chance:0.20, discovered:false,
+    description:"A large stork-like bird with a massive shoe-shaped bill.", region:"East African swamps" },
+  { name:"Kakapo", rarity:"mythic", type:"bird", chance:0.19, discovered:false,
+    description:"A flightless nocturnal parrot critically endangered.", region:"New Zealand" },
+  { name:"Cassowary", rarity:"mythic", type:"bird", chance:0.18, discovered:false,
+    description:"A large flightless bird with a casque and powerful legs.", region:"New Guinea, northern Australia" },
+  { name:"Sailfish", rarity:"mythic", type:"fish", chance:0.17, discovered:false,
+    description:"A fast predatory fish with a tall dorsal fin.", region:"Warm oceans worldwide" },
+  { name:"Oarfish", rarity:"mythic", type:"fish", chance:0.16, discovered:false,
+    description:"A long, ribbon-like deep-sea fish.", region:"Deep oceans worldwide" },
+
+  // ===== ANCIENT (10) =====
+  { name:"Coelacanth", rarity:"ancient", type:"fish", chance:0.15, discovered:false,
+    description:"A rare lobe-finned fish once thought extinct.", region:"Indian Ocean, Indonesian waters" },
+  { name:"Horseshoe Bat", rarity:"ancient", type:"mammal", chance:0.14, discovered:false,
+    description:"A bat with a horseshoe-shaped noseleaf.", region:"Europe, Asia, Africa" },
+  { name:"Numbat", rarity:"ancient", type:"mammal", chance:0.13, discovered:false,
+    description:"A small marsupial that feeds almost exclusively on termites.", region:"Western Australia" },
+  { name:"Quokka", rarity:"ancient", type:"mammal", chance:0.12, discovered:false,
+    description:"A small wallaby famous for its 'smiling' appearance.", region:"Southwest Australia" },
+  { name:"Thorny Devil", rarity:"ancient", type:"reptile", chance:0.11, discovered:false,
+    description:"A spiny lizard that feeds on ants.", region:"Australian deserts" },
+  { name:"Tuataras", rarity:"ancient", type:"reptile", chance:0.10, discovered:false,
+    description:"A reptile representing an ancient lineage distinct from lizards.", region:"New Zealand" },
+  { name:"Giant Tortoise", rarity:"ancient", type:"reptile", chance:0.09, discovered:false,
+    description:"A long-lived tortoise reaching massive sizes.", region:"Galápagos Islands, Seychelles" },
+  { name:"Giant Isopod", rarity:"ancient", type:"other", chance:0.08, discovered:false,
+    description:"A large deep-sea crustacean resembling a pill bug.", region:"Deep Atlantic and Pacific oceans" },
+  { name:"Japanese Spider Crab", rarity:"ancient", type:"other", chance:0.07, discovered:false,
+    description:"A crab with extremely long legs, the largest arthropod.", region:"Waters around Japan" },
+  { name:"Giant Weta", rarity:"ancient", type:"insect", chance:0.06, discovered:false,
+    description:"A large, heavy insect endemic to New Zealand.", region:"New Zealand" },
+
+  // ===== CELESTIAL (5) =====
+  { name:"Albino Lion", rarity:"celestial", type:"mammal", chance:0.05, discovered:false,
+    description:"A rare lion with pale or white fur due to albinism.", region:"Captive populations, Southern Africa (origin)" },
+  { name:"Albino Gorilla", rarity:"celestial", type:"mammal", chance:0.04, discovered:false,
+    description:"An extremely rare gorilla with albinism.", region:"Central African forests (origin), zoos" },
+  { name:"Melanistic Jaguar", rarity:"celestial", type:"mammal", chance:0.03, discovered:false,
+    description:"A jaguar with a nearly black coat due to excess pigment.", region:"Central and South America" },
+  { name:"Albino Peacock", rarity:"celestial", type:"bird", chance:0.02, discovered:false,
+    description:"A peafowl with pure white plumage from albinism.", region:"Captive populations, South Asia (origin)" },
+  { name:"Golden Tiger", rarity:"celestial", type:"mammal", chance:0.01, discovered:false,
+    description:"A rare color morph of tiger with golden fur and pale stripes.", region:"Captive populations, India (origin)" }
+]; // END OF ANIMALS ARRAY
+let rollCount=0;
+let recentRarities=[];
+let luckyStreakAchieved=false;
+
+function showPage(id){
+ document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+ document.getElementById(id).classList.add('active');
+}
+
+const achievements=[
+ {title:"First Catch",rarity:"common",desc:"Obtain your first animal.",progress:()=>animals.some(a=>a.discovered)},
+ {title:"Collector",rarity:"uncommon",desc:"Collect 50 different animals.",progress:()=>animals.filter(a=>a.discovered).length>=50},
+ {title:"Halfway There",rarity:"rare",desc:"Collect 100 different animals.",progress:()=>animals.filter(a=>a.discovered).length>=100},
+ {title:"Full Index",rarity:"epic",desc:"Complete the entire animal collection.",progress:()=>animals.every(a=>a.discovered)},
+ {title:"Rare Hunter",rarity:"epic",desc:"Obtain 10 Rare or higher animals.",progress:()=>animals.filter(a=>a.discovered&&["rare","epic","legendary","mythic","ancient","celestial"].includes(a.rarity)).length>=10},
+ {title:"Mythic Touch",rarity:"mythic",desc:"Obtain a Mythic animal.",progress:()=>animals.some(a=>a.discovered&&a.rarity==="mythic")},
+ {title:"Celestial Blessing",rarity:"celestial",desc:"Obtain a Celestial animal.",progress:()=>animals.some(a=>a.discovered&&a.rarity==="celestial")},
+ {title:"Roll Master",rarity:"legendary",desc:"Perform 500 total rolls.",progress:()=>rollCount>=500},
+ {title:"Lucky Streak",rarity:"ancient",desc:"Pull 2 Epic+ animals within 10 rolls.",progress:()=>luckyStreakAchieved}
+];
+
+function rollAnimal(){
+ rollCount++;
+ let totalWeight=animals.reduce((s,a)=>s+a.chance,0);
+ let r=Math.random()*totalWeight,c=0;
+
+ for(let a of animals){
+  c+=a.chance;
+  if(r<=c){
+   a.discovered=true;
+updateAnimalProgress();
+
+   recentRarities.push(a.rarity);
+   if(recentRarities.length>10)recentRarities.shift();
+
+   if(recentRarities.filter(x=>["epic","legendary","mythic","ancient","celestial"].includes(x)).length>=2)
+    luckyStreakAchieved=true;
+
+   let pct=((a.chance/totalWeight)*100).toFixed(3);
+
+   document.getElementById("result").innerHTML=
+    `You rolled: <span class="rarity-${a.rarity}"><b>${a.name}</b> (${a.rarity}, ${pct}%)</span>`;
+
+   renderIndex();
+   renderAchievements();
+   return;
+  }
+ }
+}
+
+function renderIndex(){
+ const typeF=document.getElementById("filterType").value;
+ const rarF=document.getElementById("filterRarity").value;
+ const cont=document.getElementById("indexContainer");
+ cont.innerHTML="";
+
+ const total=animals.reduce((s,a)=>s+a.chance,0);
+ const rarities=["common","uncommon","rare","epic","legendary","mythic","ancient","celestial"];
+
+ rarities.forEach(r=>{
+  let group=animals.filter(a=>
+   (typeF==="all"||a.type===typeF)&&
+   (rarF==="all"||a.rarity===rarF)&&
+   a.rarity===r
+  );
+  if(group.length===0)return;
+
+  let sec=document.createElement("div");
+  sec.innerHTML=`<h2 style="text-align:center;">${r.toUpperCase()}</h2>`;
+
+  let grid=document.createElement("div");
+  grid.className="animal-grid";
+
+  group.forEach(a=>{
+   let box=document.createElement("div");
+   box.className="animal-box";
+
+   let pct=((a.chance/total)*100).toFixed(3);
+
+   if(!a.discovered){
+    box.classList.add("unknown");
+    box.innerHTML=
+     `<div class="name">???</div>
+      <div class="rarity">Undiscovered</div>
+      <div class="chance">???.???%</div>`;
+   }else{
+    box.classList.add(a.rarity);
+    box.innerHTML=
+     `<div class="name">${a.name}</div>
+      <div class="rarity rarity-${a.rarity}">${a.rarity.toUpperCase()}</div>
+      <div class="chance">${pct}%</div>
+      <div class="desc">${a.description}</div>
+      <div class="region">Region: ${a.region}</div>`;
+   }
+
+   grid.appendChild(box);
+  });
+
+  sec.appendChild(grid);
+  cont.appendChild(sec);
+ });
+}
+
+function renderAchievements(){
+ const cont=document.getElementById("achievementsContainer");
+ cont.innerHTML="";
+
+ achievements.forEach(a=>{
+ let box = document.createElement("div");
+
+let unlocked = a.progress();
+box.className = `achievement-box achievement-${a.rarity} ${unlocked ? "unlocked" : "locked"}`;
+
+
+  box.innerHTML=
+   `<div class="achievement-title">${unlocked?a.title:"???"}</div>
+    <div class="achievement-desc">${unlocked?a.desc:"Unlock this achievement to reveal details."}</div>
+    <div class="achievement-progress">Status: ${unlocked?"Unlocked":"Locked"}</div>`;
+
+  cont.appendChild(box);
+ });
+}
+
+renderAchievements();
+
+function updateAnimalProgress(){
+    const discovered = animals.filter(a => a.discovered).length;
+    const total = animals.length;
+
+    const pct = (discovered / total) * 100;
+
+    document.getElementById("animalProgressBar").style.width = pct + "%";
+    document.getElementById("animalProgressText").textContent =
+        `${discovered} / ${total} animals discovered (${pct.toFixed(1)}%)`;
+}
+
+
+
+// Render index once animals exist
+renderIndex();
+updateAnimalProgress();
+
+renderAchievements();
+
+</script>
+<div id="qrWrapper">
+    <img id="qrCode" src="YOUR_QR_CODE_URL_HERE" alt="QR Code">
+</div>
+
+</body>
+</html>
