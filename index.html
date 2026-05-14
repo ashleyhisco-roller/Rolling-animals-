@@ -208,6 +208,10 @@ body.dark #qrWrapper {
         style="margin-left:auto;padding:8px 14px;border-radius:8px;cursor:pointer;">
     Dark Mode
 </button>
+<button id="zoomToggleBtn" onclick="toggleZoom()" 
+        style="padding:8px 14px;border-radius:8px;cursor:pointer;">
+    Disable Zoom
+</button>
 
 
 </nav>
@@ -266,6 +270,30 @@ body.dark #qrWrapper {
 </div>
 
 <script>
+function toggleZoom() {
+    const meta = document.querySelector("meta[name=viewport]");
+    const btn = document.getElementById("zoomToggleBtn");
+
+    // If zoom is currently enabled → disable it
+    if (!meta.dataset.locked) {
+        meta.setAttribute(
+            "content",
+            "width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+        );
+        meta.dataset.locked = "true";
+        btn.textContent = "Enable Zoom";
+    } 
+    // If zoom is disabled → re-enable it
+    else {
+        meta.setAttribute(
+            "content",
+            "width=device-width, initial-scale=1.0"
+        );
+        meta.dataset.locked = "";
+        btn.textContent = "Disable Zoom";
+    }
+}
+
 function toggleDarkMode(){
     document.body.classList.toggle("dark");
 
@@ -787,6 +815,38 @@ const achievements=[
  {title:"Celestial Blessing",rarity:"celestial",desc:"Obtain a Celestial animal.",progress:()=>animals.some(a=>a.discovered&&a.rarity==="celestial")},
  {title:"Roll Master",rarity:"legendary",desc:"Perform 500 total rolls.",progress:()=>rollCount>=500},
  {title:"Lucky Streak",rarity:"ancient",desc:"Pull 2 Epic+ animals within 10 rolls.",progress:()=>luckyStreakAchieved}
+ {
+    name: "Mythic Streak",
+    description: "Roll 2 Mythic animals in a row.",
+    rarity: "celestial",
+    progress: function () {
+        return window.lastTwoRolls &&
+               window.lastTwoRolls.length === 2 &&
+               window.lastTwoRolls[0] === "mythic" &&
+               window.lastTwoRolls[1] === "mythic";
+    }
+},
+{
+    name: "Ancient Discovery",
+    description: "Roll your first Ancient animal.",
+    rarity: "ancient",
+    progress: function () {
+        return animals.some(a => a.rarity === "ancient" && a.discovered);
+    }
+	 name: "In Order!?",
+    description: "Roll 2 Mythic animals in a row.",
+    rarity: "celestial",
+    progress: function () {
+        return window.lastFiveRolls &&
+               window.lastFiveRolls.length === 5 &&
+               window.lastFiveRolls[0] === "common" &&
+               window.lastFiveRolls[1] === "uncommon" &&
+			   window.lastFiveRolls[2] === "rare" &&
+			   window.lastFiveRolls[3] === "epic" &&
+			   window.lastFiveRolls[4] === "legendary";
+    }
+}
+
 ];
 
 function rollAnimal(){
